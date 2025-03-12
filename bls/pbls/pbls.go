@@ -23,6 +23,14 @@ func GenerateAggregatedSigPrysmBLS(msg []byte, sigN int) ([]common.PublicKey, co
 	return pks, aggregatedSig, nil
 }
 
+func UnmarshalSKPrysmBLS(marshalledSK []byte) (common.SecretKey, error) {
+	sk, err := blst.SecretKeyFromBytes(marshalledSK)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal secret key: %w", err)
+	}
+	return sk, nil
+}
+
 func RandKeyPrysmBLS() (common.SecretKey, error) {
 	sk, err := blst.RandKey()
 	if err != nil {

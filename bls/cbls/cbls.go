@@ -52,8 +52,8 @@ func UnmarshalSecretKeyG1SigG2(skBytes []byte) (*bls.PrivateKey[bls.KeyG1SigG2],
 	return sk, nil
 }
 
-// sign signs the message with the given private key. Returns compressed signature.
-func sign[T bls.KeyGroup](pk *bls.PrivateKey[T], msg []byte) bls.Signature { return bls.Sign(pk, msg) }
+// Sign signs the message with the given private key. Returns compressed signature.
+func Sign[T bls.KeyGroup](sk *bls.PrivateKey[T], msg []byte) bls.Signature { return bls.Sign(sk, msg) }
 
 // aggregateSignatures aggregates the given signatures into a single signature.
 // Returns compressed signature.
@@ -70,7 +70,7 @@ func generateAggregatedSigCBLS[T bls.KeyGroup](msg []byte, sigN int) ([]*bls.Pub
 		if err != nil {
 			return nil, bls.Signature{}, fmt.Errorf("failed to generate %d-th (%T): %w", i+1, sk, err)
 		}
-		sig := sign(sk, msg)
+		sig := Sign(sk, msg)
 		pks = append(pks, sk.PublicKey())
 		sigs = append(sigs, sig)
 	}
@@ -144,4 +144,8 @@ func VerifyAggregateCBLSKeyG1SigG2(pks []*bls.PublicKey[bls.KeyG1SigG2], msg []b
 		msgs[i] = msg
 	}
 	return bls.VerifyAggregate(pks, msgs, aggSig)
+}
+
+func VerifyCBLSKeyG1SigG2(pk *bls.PublicKey[bls.KeyG1SigG2], msg []byte, sig bls.Signature) bool {
+	return bls.Verify(pk, msg, sig)
 }
