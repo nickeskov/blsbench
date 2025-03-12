@@ -3,6 +3,7 @@ package bls_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"blsbench/bls/cbls"
@@ -85,4 +86,21 @@ func TestPBLSToPBLSVerify(t *testing.T) {
 	// Verify the aggregated signature
 	isValid := pblsAggSig2.Verify(pblsAggPk, message[:])
 	require.True(t, isValid, "aggregated signature verification failed")
+}
+
+func TestPBLSPKSameCBLSPK(t *testing.T) {
+	pblsSK, err := pbls.RandKeyPrysmBLS()
+	require.NoError(t, err)
+	pblsPK := pblsSK.PublicKey()
+	pblsMPK := pblsPK.Marshal()
+
+	msk := pblsSK.Marshal()
+
+	cblsSK, err := cbls.UnmarshalSecretKeyG1SigG2(msk)
+	require.NoError(t, err)
+	cblsPK := cblsSK.PublicKey()
+	cblsMPK, err := cblsPK.MarshalBinary()
+	require.NoError(t, err)
+
+	assert.Equal(t, pblsMPK, cblsMPK)
 }

@@ -33,6 +33,25 @@ func generateSecretKey[T bls.KeyGroup]() (*bls.PrivateKey[T], error) {
 	return pk, nil
 }
 
+func unmarshalSecretKey[T bls.KeyGroup](skBytes []byte) (*bls.PrivateKey[T], error) {
+	sk := new(bls.PrivateKey[T])
+	if err := sk.UnmarshalBinary(skBytes); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal secret key: %w", err)
+	}
+	if ok := sk.Validate(); !ok {
+		return nil, fmt.Errorf("failed to validate secret key")
+	}
+	return sk, nil
+}
+
+func UnmarshalSecretKeyG1SigG2(skBytes []byte) (*bls.PrivateKey[bls.KeyG1SigG2], error) {
+	sk, err := unmarshalSecretKey[bls.G1](skBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal secret key: %w", err)
+	}
+	return sk, nil
+}
+
 // sign signs the message with the given private key. Returns compressed signature.
 func sign[T bls.KeyGroup](pk *bls.PrivateKey[T], msg []byte) bls.Signature { return bls.Sign(pk, msg) }
 
@@ -74,6 +93,17 @@ func SerializePkAndSigCBLS[T bls.KeyGroup](pks []*bls.PublicKey[T], sig bls.Sign
 	return marshalledPk, sig, nil
 }
 
+func unmarshalPK[T bls.KeyGroup](marshalledPk []byte) (*bls.PublicKey[T], error) {
+	pk := new(bls.PublicKey[T])
+	if err := pk.UnmarshalBinary(marshalledPk); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal public key: %w", err)
+	}
+	if ok := pk.Validate(); !ok {
+		return nil, fmt.Errorf("failed to validate public key")
+	}
+	return pk, nil
+}
+
 func unmarshalPKAndSigCBLS[T bls.KeyGroup](
 	marshalledPk [][]byte,
 	sig []byte,
@@ -81,12 +111,9 @@ func unmarshalPKAndSigCBLS[T bls.KeyGroup](
 	// TODO: no validation of the signature
 	pks := make([]*bls.PublicKey[T], len(marshalledPk))
 	for i, pkBytes := range marshalledPk {
-		pk := new(bls.PublicKey[T])
-		if err := pk.UnmarshalBinary(pkBytes); err != nil {
+		pk, err := unmarshalPK[T](pkBytes)
+		if err != nil {
 			return nil, bls.Signature{}, fmt.Errorf("failed to unmarshal %d-th public key: %w", i+1, err)
-		}
-		if ok := pk.Validate(); !ok {
-			return nil, bls.Signature{}, fmt.Errorf("failed to validate %d-th public key", i+1)
 		}
 		pks[i] = pk
 	}

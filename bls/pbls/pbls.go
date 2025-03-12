@@ -11,7 +11,7 @@ func GenerateAggregatedSigPrysmBLS(msg []byte, sigN int) ([]common.PublicKey, co
 	var pks []common.PublicKey
 	var sigs []common.Signature
 	for i := range sigN {
-		sk, err := blst.RandKey()
+		sk, err := RandKeyPrysmBLS()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to generate %d-th key: %w", i+1, err)
 		}
@@ -21,6 +21,14 @@ func GenerateAggregatedSigPrysmBLS(msg []byte, sigN int) ([]common.PublicKey, co
 	}
 	aggregatedSig := blst.AggregateSignatures(sigs)
 	return pks, aggregatedSig, nil
+}
+
+func RandKeyPrysmBLS() (common.SecretKey, error) {
+	sk, err := blst.RandKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate random key: %w", err)
+	}
+	return sk, nil
 }
 
 func SerializePkAndSigPrysmBLS(pk []common.PublicKey, sig common.Signature) ([][]byte, []byte) {
