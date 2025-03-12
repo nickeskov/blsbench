@@ -11,7 +11,7 @@ import (
 	"blsbench/bls/pbls"
 )
 
-func TestCBLSGenPBLSVerify(t *testing.T) {
+func TestCBLSGenPBLSVerify(t *testing.T) { // fails
 	const (
 		sigN = 10
 	)
@@ -32,7 +32,7 @@ func TestCBLSGenPBLSVerify(t *testing.T) {
 	require.True(t, isValid, "aggregated signature verification failed")
 }
 
-func TestPBLSToCBLSVerify(t *testing.T) {
+func TestPBLSToCBLSVerify(t *testing.T) { // fails
 	const (
 		sigN = 10
 	)
