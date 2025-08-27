@@ -9,6 +9,9 @@ require (
 	github.com/supranational/blst v0.3.14
 )
 
+// Using a fork of circl with options for setting BLS domain separation tag in Sign and Verify functions.
+replace github.com/cloudflare/circl => github.com/nickeskov/circl v1.6.1-dst
+
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

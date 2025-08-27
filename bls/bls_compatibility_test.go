@@ -14,7 +14,7 @@ type PublicKey = blst.P1Affine
 type Signature = blst.P2Affine
 type AggSig = blst.P2Aggregate
 
-const DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"
+const DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_" // ethereum standard domain separation tag
 
 func rand32(t *testing.T) []byte {
 	b := make([]byte, 32)
