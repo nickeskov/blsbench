@@ -6,6 +6,7 @@ require (
 	github.com/cloudflare/circl v1.6.0
 	github.com/prysmaticlabs/prysm/v5 v5.3.0
 	github.com/stretchr/testify v1.10.0
+	github.com/supranational/blst v0.3.14
 )
 
 require (
@@ -30,7 +31,6 @@ require (
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20240618144021-706c95b2dd15 // indirect
 	github.com/prysmaticlabs/gohashtree v0.0.4-beta.0.20240624100937-73632381301b // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/supranational/blst v0.3.14 // indirect
 	github.com/thomaso-mirodin/intmath v0.0.0-20160323211736-5dc6d854e46e // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
