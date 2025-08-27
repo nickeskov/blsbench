@@ -24,7 +24,7 @@ linters:
     - gocritic
     - gocyclo
     - godot
-    - gomoddirectives
+    #- gomoddirectives # temporarily disabled due to replacing github.com/cloudflare/circl library
     - gomodguard
     - goprintffuncname
     - gosec
