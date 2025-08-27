@@ -5,45 +5,13 @@ import (
 	"fmt"
 	"io"
 
-	//GG "github.com/cloudflare/circl/ecc/bls12381"
 	"github.com/cloudflare/circl/sign/bls"
 )
 
-//const (
-//	dstG1 = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_POP_"
-//	dstG2 = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_"
-//)
-//
-//// sign computes a signature of a message using a key (defined in
-//// G1 or G1).
-//func sign[K bls.KeyGroup](k *bls.PrivateKey[K], msg []byte) bls.Signature {
-//	if !k.Validate() {
-//		panic(bls.ErrInvalidKey)
-//	}
-//	msk, err := k.MarshalBinary()
-//	if err != nil {
-//		panic(fmt.Errorf("failed to marshal secret key: %w", err))
-//	}
-//	var secretKeyScalar GG.Scalar
-//	if unErr := secretKeyScalar.UnmarshalBinary(msk); unErr != nil { // secret key is a scalar, so it must be safe
-//		panic(fmt.Errorf("failed to unmarshal secret key: %w", unErr))
-//	}
-//
-//	switch any(k).(type) {
-//	case *bls.PrivateKey[bls.G1]:
-//		var Q GG.G2
-//		Q.Hash(msg, []byte(dstG2))
-//		Q.ScalarMult(&secretKeyScalar, &Q)
-//		return Q.BytesCompressed()
-//	case *bls.PrivateKey[bls.G2]:
-//		var Q GG.G1
-//		Q.Hash(msg, []byte(dstG1))
-//		Q.ScalarMult(&secretKeyScalar, &Q)
-//		return Q.BytesCompressed()
-//	default:
-//		panic(bls.ErrInvalid)
-//	}
-//}
+const (
+	dstG1 = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_POP_"
+	dstG2 = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_"
+)
 
 const salt32 = "78431268758871967631102412708397" // 32 bytes
 
@@ -91,7 +59,10 @@ func UnmarshalSecretKeyG1SigG2(skBytes []byte) (*bls.PrivateKey[bls.KeyG1SigG2],
 
 // Sign signs the message with the given private key. Returns compressed signature.
 func Sign(sk *bls.PrivateKey[bls.G1], msg []byte) bls.Signature {
-	return bls.Sign(sk, msg)
+	return bls.Sign(sk, msg, func(opts *bls.SignOpts) {
+		opts.G1DST = []byte(dstG1)
+		opts.G2DST = []byte(dstG2)
+	})
 }
 
 // aggregateSignatures aggregates the given signatures into a single signature.
@@ -182,9 +153,15 @@ func VerifyAggregateCBLSKeyG1SigG2(pks []*bls.PublicKey[bls.KeyG1SigG2], msg []b
 	for i := range len(pks) {
 		msgs[i] = msg
 	}
-	return bls.VerifyAggregate(pks, msgs, aggSig)
+	return bls.VerifyAggregate(pks, msgs, aggSig, func(opts *bls.VerifyOpts) {
+		opts.G1DST = []byte(dstG1)
+		opts.G2DST = []byte(dstG2)
+	})
 }
 
 func VerifyCBLSKeyG1SigG2(pk *bls.PublicKey[bls.KeyG1SigG2], msg []byte, sig bls.Signature) bool {
-	return bls.Verify(pk, msg, sig)
+	return bls.Verify(pk, msg, sig, func(opts *bls.VerifyOpts) {
+		opts.G1DST = []byte(dstG1)
+		opts.G2DST = []byte(dstG2)
+	})
 }
