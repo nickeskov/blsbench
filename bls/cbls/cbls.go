@@ -8,6 +8,11 @@ import (
 	"github.com/cloudflare/circl/sign/bls"
 )
 
+const (
+	dstG1 = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_POP_"
+	dstG2 = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_"
+)
+
 const salt32 = "78431268758871967631102412708397" // 32 bytes
 
 func readRandomBytes(n int) []byte {
@@ -24,17 +29,17 @@ func read64RandomBytes() []byte {
 	return readRandomBytes(n)
 }
 
-func generateSecretKey[T bls.KeyGroup]() (*bls.PrivateKey[T], error) {
+func generateSecretKey() (*bls.PrivateKey[bls.G1], error) {
 	b64 := read64RandomBytes()
-	pk, err := bls.KeyGen[T](b64, []byte(salt32), nil)
+	pk, err := bls.KeyGen[bls.G1](b64, []byte(salt32), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate (%T): %w", pk, err)
 	}
 	return pk, nil
 }
 
-func unmarshalSecretKey[T bls.KeyGroup](skBytes []byte) (*bls.PrivateKey[T], error) {
-	sk := new(bls.PrivateKey[T])
+func unmarshalSecretKey(skBytes []byte) (*bls.PrivateKey[bls.G1], error) {
+	sk := new(bls.PrivateKey[bls.G1])
 	if err := sk.UnmarshalBinary(skBytes); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret key: %w", err)
 	}
@@ -45,7 +50,7 @@ func unmarshalSecretKey[T bls.KeyGroup](skBytes []byte) (*bls.PrivateKey[T], err
 }
 
 func UnmarshalSecretKeyG1SigG2(skBytes []byte) (*bls.PrivateKey[bls.KeyG1SigG2], error) {
-	sk, err := unmarshalSecretKey[bls.G1](skBytes)
+	sk, err := unmarshalSecretKey(skBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret key: %w", err)
 	}
@@ -53,20 +58,25 @@ func UnmarshalSecretKeyG1SigG2(skBytes []byte) (*bls.PrivateKey[bls.KeyG1SigG2],
 }
 
 // Sign signs the message with the given private key. Returns compressed signature.
-func Sign[T bls.KeyGroup](sk *bls.PrivateKey[T], msg []byte) bls.Signature { return bls.Sign(sk, msg) }
+func Sign(sk *bls.PrivateKey[bls.G1], msg []byte) bls.Signature {
+	return bls.Sign(sk, msg, func(opts *bls.SignOpts) {
+		opts.G1DST = []byte(dstG1)
+		opts.G2DST = []byte(dstG2)
+	})
+}
 
 // aggregateSignatures aggregates the given signatures into a single signature.
 // Returns compressed signature.
-func aggregateSignatures[T bls.KeyGroup](signatures []bls.Signature) (bls.Signature, error) {
-	var g T
+func aggregateSignatures(signatures []bls.Signature) (bls.Signature, error) {
+	var g bls.G1
 	return bls.Aggregate(g, signatures)
 }
 
-func generateAggregatedSigCBLS[T bls.KeyGroup](msg []byte, sigN int) ([]*bls.PublicKey[T], bls.Signature, error) {
-	pks := make([]*bls.PublicKey[T], 0, sigN)
+func generateAggregatedSigCBLS(msg []byte, sigN int) ([]*bls.PublicKey[bls.KeyG1SigG2], bls.Signature, error) {
+	pks := make([]*bls.PublicKey[bls.G1], 0, sigN)
 	sigs := make([]bls.Signature, 0, sigN)
 	for i := range sigN {
-		sk, err := generateSecretKey[T]()
+		sk, err := generateSecretKey()
 		if err != nil {
 			return nil, bls.Signature{}, fmt.Errorf("failed to generate %d-th (%T): %w", i+1, sk, err)
 		}
@@ -74,14 +84,14 @@ func generateAggregatedSigCBLS[T bls.KeyGroup](msg []byte, sigN int) ([]*bls.Pub
 		pks = append(pks, sk.PublicKey())
 		sigs = append(sigs, sig)
 	}
-	aggregated, err := aggregateSignatures[T](sigs)
+	aggregated, err := aggregateSignatures(sigs)
 	if err != nil {
 		return nil, bls.Signature{}, fmt.Errorf("failed to aggregate %d signatures: %w", sigN, err)
 	}
 	return pks, aggregated, nil
 }
 
-func SerializePkAndSigCBLS[T bls.KeyGroup](pks []*bls.PublicKey[T], sig bls.Signature) ([][]byte, []byte, error) {
+func SerializePkAndSigCBLS(pks []*bls.PublicKey[bls.KeyG1SigG2], sig bls.Signature) ([][]byte, []byte, error) {
 	marshalledPk := make([][]byte, len(pks))
 	for i, p := range pks {
 		pk, err := p.MarshalBinary() // compressed
@@ -93,8 +103,8 @@ func SerializePkAndSigCBLS[T bls.KeyGroup](pks []*bls.PublicKey[T], sig bls.Sign
 	return marshalledPk, sig, nil
 }
 
-func unmarshalPK[T bls.KeyGroup](marshalledPk []byte) (*bls.PublicKey[T], error) {
-	pk := new(bls.PublicKey[T])
+func unmarshalPK(marshalledPk []byte) (*bls.PublicKey[bls.KeyG1SigG2], error) {
+	pk := new(bls.PublicKey[bls.KeyG1SigG2])
 	if err := pk.UnmarshalBinary(marshalledPk); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal public key: %w", err)
 	}
@@ -104,14 +114,14 @@ func unmarshalPK[T bls.KeyGroup](marshalledPk []byte) (*bls.PublicKey[T], error)
 	return pk, nil
 }
 
-func unmarshalPKAndSigCBLS[T bls.KeyGroup](
+func unmarshalPKAndSigCBLS(
 	marshalledPk [][]byte,
 	sig []byte,
-) ([]*bls.PublicKey[T], bls.Signature, error) {
+) ([]*bls.PublicKey[bls.KeyG1SigG2], bls.Signature, error) {
 	// TODO: no validation of the signature
-	pks := make([]*bls.PublicKey[T], len(marshalledPk))
+	pks := make([]*bls.PublicKey[bls.KeyG1SigG2], len(marshalledPk))
 	for i, pkBytes := range marshalledPk {
-		pk, err := unmarshalPK[T](pkBytes)
+		pk, err := unmarshalPK(pkBytes)
 		if err != nil {
 			return nil, bls.Signature{}, fmt.Errorf("failed to unmarshal %d-th public key: %w", i+1, err)
 		}
@@ -124,14 +134,14 @@ func UnmarshalPkAndSigCBLSKeyG1SigG2(
 	marshalledPk [][]byte,
 	sig []byte,
 ) ([]*bls.PublicKey[bls.KeyG1SigG2], bls.Signature, error) {
-	return unmarshalPKAndSigCBLS[bls.G1](marshalledPk, sig)
+	return unmarshalPKAndSigCBLS(marshalledPk, sig)
 }
 
 func GenerateAggregatedSigCBLSKeyG1SigG2(
 	msg []byte,
 	sigN int,
 ) ([]*bls.PublicKey[bls.KeyG1SigG2], bls.Signature, error) {
-	pks, sig, err := generateAggregatedSigCBLS[bls.G1](msg, sigN)
+	pks, sig, err := generateAggregatedSigCBLS(msg, sigN)
 	if err != nil {
 		return nil, bls.Signature{}, fmt.Errorf("failed to generate aggregated signature: %w", err)
 	}
@@ -143,9 +153,15 @@ func VerifyAggregateCBLSKeyG1SigG2(pks []*bls.PublicKey[bls.KeyG1SigG2], msg []b
 	for i := range len(pks) {
 		msgs[i] = msg
 	}
-	return bls.VerifyAggregate(pks, msgs, aggSig)
+	return bls.VerifyAggregate(pks, msgs, aggSig, func(opts *bls.VerifyOpts) {
+		opts.G1DST = []byte(dstG1)
+		opts.G2DST = []byte(dstG2)
+	})
 }
 
 func VerifyCBLSKeyG1SigG2(pk *bls.PublicKey[bls.KeyG1SigG2], msg []byte, sig bls.Signature) bool {
-	return bls.Verify(pk, msg, sig)
+	return bls.Verify(pk, msg, sig, func(opts *bls.VerifyOpts) {
+		opts.G1DST = []byte(dstG1)
+		opts.G2DST = []byte(dstG2)
+	})
 }
