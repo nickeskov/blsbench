@@ -2,7 +2,6 @@ package bls_test
 
 import (
 	"crypto/rand"
-	"fmt"
 	"testing"
 
 	cbls "github.com/cloudflare/circl/sign/bls"
@@ -100,5 +99,5 @@ func TestCirclSignatureVerifyByBlst(t *testing.T) {
 	require.NotNil(t, blstAgg.Uncompress(aggBytes))
 
 	okAgg := blstAgg.FastAggregateVerify(true, []*blst.P1Affine{&blstPK, &blstPK2}, msg, []byte(DST))
-	fmt.Println("blst.FastAggregateVerify(CIRCL agg sig):", okAgg)
+	require.True(t, okAgg)
 }
