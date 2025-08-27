@@ -7,6 +7,8 @@ import (
 	cbls "github.com/cloudflare/circl/sign/bls"
 	"github.com/stretchr/testify/require"
 	blst "github.com/supranational/blst/bindings/go"
+
+	localcbls "blsbench/bls/cbls"
 )
 
 type PublicKey = blst.P1Affine
@@ -60,9 +62,9 @@ func TestBlstSignatureVerifyByCircl(t *testing.T) {
 	err = circlPK2.UnmarshalBinary(pk2Bytes)
 	require.NoError(t, err)
 
-	ok := cbls.VerifyAggregate[cbls.KeyG1SigG2](
+	ok := localcbls.VerifyAggregateCBLSKeyG1SigG2(
 		[]*cbls.PublicKey[cbls.KeyG1SigG2]{&circlPK1, &circlPK2},
-		[][]byte{msg, msg},
+		msg,
 		aggSigBytes,
 	)
 	require.True(t, ok)
@@ -74,8 +76,8 @@ func TestCirclSignatureVerifyByBlst(t *testing.T) {
 
 	msg := []byte("circl -> blst")
 
-	sigBytes1 := cbls.Sign[cbls.KeyG1SigG2](sk1, msg)
-	sigBytes2 := cbls.Sign[cbls.KeyG1SigG2](sk2, msg)
+	sigBytes1 := localcbls.Sign(sk1, msg)
+	sigBytes2 := localcbls.Sign(sk2, msg)
 
 	// CIRCL aggregates signature bytes (G2)
 	aggBytes, err := cbls.Aggregate[cbls.KeyG1SigG2](cbls.G1{}, [][]byte{sigBytes1, sigBytes2})
