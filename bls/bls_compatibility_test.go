@@ -1,14 +1,13 @@
-//go:build cgo
-
 package bls_test
 
 import (
 	"crypto/rand"
 	"fmt"
+	"testing"
+
 	cbls "github.com/cloudflare/circl/sign/bls"
 	"github.com/stretchr/testify/require"
 	blst "github.com/supranational/blst/bindings/go"
-	"testing"
 )
 
 type PublicKey = blst.P1Affine
