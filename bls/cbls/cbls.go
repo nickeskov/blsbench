@@ -108,6 +108,11 @@ func unmarshalPK(marshalledPk []byte) (*bls.PublicKey[bls.KeyG1SigG2], error) {
 	if err := pk.UnmarshalBinary(marshalledPk); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal public key: %w", err)
 	}
+	// NOTE: it's necessary to check received public keys for validity because user can use weak keys
+	// (e.g. point at infinity or from a weak subgroup) that break the BLS signature scheme.
+	//
+	// https://eprint.iacr.org/2019/814.pdf - section "1.1 Addressing Cofactors"
+	// https://hackmd.io/@benjaminion/bls12-381#Subgroup-membership-checks
 	if ok := pk.Validate(); !ok {
 		return nil, fmt.Errorf("failed to validate public key")
 	}
